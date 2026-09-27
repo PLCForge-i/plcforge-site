@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PLCForge — PLC simulator and PLC training apps</title>
+<meta name="description" content="PLCForge makes two apps for industrial automation: PLCForge, a control panel and PLC simulator, and PLC Learn, a step-by-step ladder logic course. Android, iPhone, iPad and Windows.">
+<link rel="canonical" href="https://plcforge.net/">
+<link rel="alternate" hreflang="en" href="https://plcforge.net/">
+<link rel="alternate" hreflang="tr" href="https://plcforge.net/#tr">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://plcforge.net/">
+<meta property="og:title" content="PLCForge — PLC simulator and PLC training apps">
+<meta property="og:description" content="Wire a control panel, write the ladder program, run it. On Android, iPhone, iPad and Windows.">
+<meta property="og:image" content="https://plcforge.net/img/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0c131f">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  color-scheme: dark;
+  --ground: #0c131f;
+  --panel: #121c2c;
+  --panel-2: #0f1826;
+  --panel-edge: #22304a;
+  --rail: #93a3b8;
+  --wire-off: #3a4a63;
+  --live: #14e07f;
+  --forge: #ff7a1a;
+  --learn: #5ab0ff;
+  --stop: #ff4d4d;
+  --text: #e7edf5;
+  --muted: #9aa9bd;
+  --display: "Chakra Petch", "Arial Narrow", Arial, sans-serif;
+  --body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --gutter: clamp(22px, 5vw, 56px);
+  --rail-x: clamp(6px, 1.4vw, 16px);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background:
+    linear-gradient(rgba(147,163,184,.045) 1px, transparent 1px) 0 0 / 100% 48px,
+    linear-gradient(90deg, rgba(147,163,184,.045) 1px, transparent 1px) 0 0 / 48px 100%,
+    var(--ground);
+  color: var(--text);
+  font: 400 17px/1.6 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+button { font-family: inherit; }
+:focus-visible { outline: 2px solid var(--live); outline-offset: 3px; border-radius: 4px; }
+
+html[data-lang="en"] [lang="tr"], html[data-lang="tr"] [lang="en"] { display: none !important; }
+
+/* the ladder: two power rails frame the whole page */
+.ladder {
+  position: relative;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.ladder::before, .ladder::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 5px;
+  background: var(--rail);
+  border-radius: 2px;
+  opacity: .85;
+}
+.ladder::before { left: var(--rail-x); }
+.ladder::after { right: var(--rail-x); }
+
+header.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 22px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  font: 700 22px/1 var(--display);
+  letter-spacing: .04em;
+}
+.brand img { width: 40px; height: 40px; border-radius: 9px; }
+.brand b { color: var(--forge); font-weight: 700; }
+.topnav { display: flex; align-items: center; gap: clamp(14px, 2.4vw, 28px); }
+.topnav a.link {
+  font: 500 13px/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+}
+.topnav a.link:hover { color: var(--text); }
+.lang {
+  display: flex;
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.lang button {
+  font: 500 13px/1 var(--mono);
+  letter-spacing: .08em;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.lang button[aria-pressed="true"] { background: var(--live); color: #04140c; }
+
+/* a rung: wire, contact, label, wire, coil — spans rail to rail */
+.rung {
+  display: flex;
+  align-items: center;
+  margin-inline: calc(-1 * var(--gutter) + var(--rail-x) + 5px);
+  color: var(--wire);
+  --wire: var(--live);
+}
+.rung .wire { height: 3px; background: var(--wire); flex: 0 0 clamp(16px, 4vw, 48px); }
+.rung .wire.long { flex: 1 1 auto; }
+.rung svg { flex: none; display: block; }
+.rung .tag {
+  font: 500 13px/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--wire);
+  padding-inline: 12px;
+  white-space: nowrap;
+}
+.rung.forge { --wire: var(--forge); }
+.rung.learn { --wire: var(--learn); }
+.rung.plain { --wire: var(--rail); }
+.rung.off { --wire: var(--wire-off); }
+
+section { padding-block: clamp(36px, 6vw, 72px); }
+.sec-head { margin-top: clamp(28px, 4vw, 48px); max-width: 62ch; }
+.sec-head h2, .product h2, .contact h2 {
+  font: 700 clamp(28px, 4vw, 42px)/1.08 var(--display);
+  text-transform: uppercase;
+  letter-spacing: .01em;
+  margin: 0;
+  text-wrap: balance;
+}
+.sec-head p { color: var(--muted); margin: 14px 0 0; }
+
+/* hero */
+.hero { padding-block: clamp(20px, 4vw, 40px) clamp(36px, 6vw, 72px); }
+.hero .cols {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+}
+.hero h1 {
+  font: 700 clamp(38px, 6vw, 72px)/1.02 var(--display);
+  margin: 0;
+  text-wrap: balance;
+  text-transform: uppercase;
+}
+.hero h1 span { display: block; }
+.hero h1 .s1 { color: var(--learn); }
+.hero h1 .s2 { color: var(--forge); }
+.hero h1 .s3 { color: var(--live); }
+.hero p.lede {
+  max-width: 56ch;
+  margin: 22px 0 0;
+  font-size: clamp(17px, 1.8vw, 19px);
+  color: var(--muted);
+}
+.jump { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.jump a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 10px 10px;
+  border: 1px solid var(--panel-edge);
+  border-radius: 12px;
+  background: var(--panel);
+  text-decoration: none;
+  font: 600 17px/1.2 var(--display);
+  letter-spacing: .02em;
+}
+.jump a:hover { border-color: var(--rail); }
+.jump img { width: 44px; height: 44px; border-radius: 10px; }
+.jump small { display: block; font: 400 12px/1.3 var(--mono); color: var(--muted); letter-spacing: .04em; margin-top: 3px; }
+
+/* live ladder demo */
+.demo {
+  background: var(--panel-2);
+  border: 1px solid var(--panel-edge);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.demo .bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--panel-edge);
+  font: 500 12px/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.demo .bar .run { color: var(--live); display: inline-flex; align-items: center; gap: 7px; }
+.demo .bar .run::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--live); box-shadow: 0 0 8px var(--live); }
+.demo svg.lad { display: block; width: 100%; height: auto; }
+.lad .w { stroke: var(--wire-off); stroke-width: 3; fill: none; stroke-linecap: round; transition: stroke .12s; }
+.lad .w.on { stroke: var(--live); }
+.lad .railbar { stroke: var(--rail); stroke-width: 5; stroke-linecap: round; }
+.lad text { font: 500 12px var(--mono); fill: var(--muted); letter-spacing: .04em; }
+.lad text.on { fill: var(--live); }
+.lad .coil { fill: none; }
+.demo .ops {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--panel-edge);
+}
+.pb {
+  font: 700 15px/1 var(--display);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #06110b;
+  background: var(--live);
+  border: 0;
+  border-bottom: 4px solid rgba(0,0,0,.35);
+  border-radius: 10px;
+  padding: 15px 10px 13px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.pb small { display: block; font: 500 11px/1 var(--mono); letter-spacing: .08em; opacity: .7; margin-bottom: 6px; }
+.pb.stop { background: var(--stop); color: #1a0505; }
+.pb.down { transform: translateY(3px); border-bottom-width: 1px; margin-bottom: 3px; }
+.motor { display: flex; align-items: center; gap: 10px; font: 500 12px/1.3 var(--mono); letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+.motor svg { width: 46px; height: 46px; flex: none; }
+.motor .fan { transform-origin: 23px 23px; }
+.motor .ring { stroke: var(--wire-off); }
+.motor .blades { fill: var(--wire-off); }
+.motor.on .ring { stroke: var(--live); }
+.motor.on .blades { fill: var(--live); }
+.motor.on b { color: var(--live); }
+.motor b { display: block; font-weight: 500; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.motor.on .fan { animation: spin .7s linear infinite; }
+.demo .hint { margin: 0; padding: 0 16px 16px; font-size: 14px; color: var(--muted); }
+
+@keyframes flow { to { background-position: 28px 0; } }
+.rung.energized .wire {
+  background: repeating-linear-gradient(90deg, var(--wire) 0 18px, color-mix(in srgb, var(--wire) 45%, transparent) 18px 28px);
+  animation: flow 1.1s linear infinite;
+}
+
+/* facts strip */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: clamp(32px, 5vw, 56px);
+  border-block: 1px solid var(--panel-edge);
+}
+.facts div { padding: 18px 16px 18px 0; }
+.facts div + div { padding-left: 18px; border-left: 1px solid var(--panel-edge); }
+.facts b { display: block; font: 700 clamp(19px, 2.2vw, 24px)/1.15 var(--display); text-transform: uppercase; }
+.facts span { display: block; margin-top: 6px; font-size: 14px; line-height: 1.45; color: var(--muted); }
+
+/* product sections */
+.product .grid {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: start;
+  margin-top: clamp(28px, 4vw, 48px);
+}
+.product.flip .grid { grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); }
+.product.flip .copy { order: 2; }
+.product h2 { display: flex; align-items: center; gap: 16px; }
+.product h2 img { width: 64px; height: 64px; border-radius: 14px; flex: none; }
+.product .what { font-size: 19px; margin: 20px 0 0; max-width: 46ch; text-wrap: pretty; }
+.feats {
+  list-style: none;
+  padding: 0;
+  margin: 28px 0 0;
+  border-top: 1px solid var(--panel-edge);
+}
+.feats li {
+  display: grid;
+  grid-template-columns: 68px 1fr;
+  gap: 14px;
+  padding-block: 13px;
+  border-bottom: 1px solid var(--panel-edge);
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.feats li b { color: var(--text); font-weight: 600; }
+.feats code { font: 500 13px/1.85 var(--mono); color: var(--accent); letter-spacing: .04em; }
+.product.forge { --accent: var(--forge); }
+.product.learn { --accent: var(--learn); }
+
+.stores { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.stores a {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 156px;
+  padding: 11px 18px 12px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #0a0f18;
+  text-decoration: none;
+  font: 700 17px/1 var(--display);
+  letter-spacing: .02em;
+  transition: transform .12s ease;
+}
+.stores a:hover { transform: translateY(-2px); }
+.stores a small { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; opacity: .75; }
+.note { margin: 14px 0 0; font-size: 14px; color: var(--muted); }
+
+/* one screenshot at a time, switched by tabs */
+.viewer { max-width: 340px; margin-inline: auto; width: 100%; }
+.viewer img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 9 / 16;
+  border-radius: 16px;
+  border: 1px solid var(--panel-edge);
+  background: var(--panel);
+}
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; justify-content: center; }
+.tabs button {
+  font: 500 12px/1 var(--mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px;
+  padding: 9px 11px;
+  cursor: pointer;
+}
+.tabs button:hover { color: var(--text); border-color: var(--rail); }
+.tabs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #0a0f18; }
+
+/* steps */
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: clamp(24px, 3vw, 36px) 0 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  counter-reset: step;
+}
+.steps li {
+  counter-increment: step;
+  position: relative;
+  padding: 26px 20px 0 0;
+  border-top: 3px solid var(--forge);
+}
+.steps li::before {
+  content: "";
+  position: absolute;
+  top: -9px; left: 0;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: var(--ground);
+  border: 3px solid var(--forge);
+}
+.steps li:last-child { border-top-color: var(--live); }
+.steps li:last-child::before { border-color: var(--live); background: var(--live); }
+.steps .n { font: 500 12px/1 var(--mono); letter-spacing: .1em; color: var(--forge); }
+.steps .n::after { content: "0" counter(step); }
+.steps li:last-child .n { color: var(--live); }
+.steps h3 { font: 700 21px/1.15 var(--display); text-transform: uppercase; margin: 10px 0 0; }
+.steps p { margin: 8px 0 0; font-size: 15px; line-height: 1.5; color: var(--muted); }
+
+/* video */
+.video {
+  position: relative;
+  margin-top: clamp(24px, 3vw, 36px);
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--panel-edge);
+  overflow: hidden;
+  background: #000;
+}
+.video img, .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border: 0; }
+.video button {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  background: linear-gradient(transparent 55%, rgba(5,9,15,.8));
+  border: 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+}
+.video .play {
+  width: 84px; height: 84px;
+  border-radius: 50%;
+  background: var(--forge);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 30px rgba(0,0,0,.5);
+  transition: transform .12s ease;
+}
+.video button:hover .play { transform: scale(1.06); }
+.video-note { margin: 12px 0 0; font-size: 14px; color: var(--muted); }
+
+/* comparison */
+.tablewrap { overflow-x: auto; margin-top: clamp(24px, 3vw, 36px); }
+table.compare { width: 100%; min-width: 600px; border-collapse: collapse; font-size: 16px; line-height: 1.5; }
+.compare th, .compare td { text-align: left; vertical-align: top; padding: 14px 18px 14px 0; border-bottom: 1px solid var(--panel-edge); }
+.compare thead th { font: 700 20px/1.1 var(--display); text-transform: uppercase; border-bottom: 3px solid var(--panel-edge); }
+.compare thead th.f { color: var(--forge); border-bottom-color: var(--forge); }
+.compare thead th.l { color: var(--learn); border-bottom-color: var(--learn); }
+.compare tbody th { font: 500 12px/1.9 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); width: 22%; white-space: nowrap; }
+.compare td { color: var(--text); width: 39%; }
+
+/* faq */
+.faq { margin-top: clamp(24px, 3vw, 36px); border-top: 1px solid var(--panel-edge); max-width: 820px; }
+.faq details { border-bottom: 1px solid var(--panel-edge); }
+.faq summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-block: 18px;
+  font: 600 18px/1.35 var(--body);
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font: 500 24px/1 var(--mono); color: var(--live); flex: none; }
+.faq details[open] summary::after { content: "−"; }
+.faq p { margin: 0; padding: 0 40px 20px 0; color: var(--muted); max-width: 68ch; }
+
+/* contact */
+.contact { padding-bottom: clamp(28px, 4vw, 48px); }
+.contact .box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px 48px;
+  align-items: end;
+  margin-top: clamp(28px, 4vw, 48px);
+}
+.contact p { color: var(--muted); max-width: 54ch; margin: 14px 0 0; }
+.mail { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.mail a { font: 500 clamp(19px, 2.6vw, 26px)/1 var(--mono); color: var(--live); text-decoration-thickness: 1px; text-underline-offset: 6px; }
+.mail button {
+  font: 500 12px/1 var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+.mail button:hover { border-color: var(--rail); }
+
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px 28px;
+  padding-block: 26px 40px;
+  font-size: 14px;
+  color: var(--muted);
+}
+footer nav { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+footer a { text-underline-offset: 4px; }
+
+@media (max-width: 860px) {
+  .hero .cols, .product .grid, .product.flip .grid { grid-template-columns: minmax(0, 1fr); }
+  .product.flip .copy { order: 0; }
+  .contact .box { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .rung .tag { font-size: 11px; padding-inline: 8px; }
+  .topnav a.link { display: none; }
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .facts div:nth-child(3) { padding-left: 0; border-left: 0; }
+  .facts div:nth-child(n+3) { border-top: 1px solid var(--panel-edge); }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 32px; }
+  .faq p { padding-right: 0; }
+}
+@media (max-width: 480px) {
+  .steps { grid-template-columns: minmax(0, 1fr); }
+  .demo .ops { grid-template-columns: 1fr 1fr; }
+  .motor { grid-column: 1 / -1; }
+  .video .play { width: 60px; height: 60px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rung.energized .wire { animation: none; background: var(--wire); }
+  .motor.on .fan { animation: none; }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+<div class="ladder">
+
+<header class="top">
+  <a class="brand" href="#top" aria-label="PLCForge">
+    <img src="img/pf-512.png" alt="" width="40" height="40">
+    <span>PLC<b>FORGE</b></span>
+  </a>
+  <div class="topnav">
+    <a class="link" href="#forge">PLCForge</a>
+    <a class="link" href="#learn">PLC Learn</a>
+    <a class="link" href="#faq"><span lang="en">FAQ</span><span lang="tr">SSS</span></a>
+    <a class="link" href="#contact"><span lang="en">Contact</span><span lang="tr">İletişim</span></a>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-set="en" aria-pressed="true">EN</button>
+      <button type="button" data-set="tr" aria-pressed="false">TR</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <div class="cols">
+    <div>
+      <h1 lang="en"><span class="s1">Learn the logic.</span><span class="s2">Wire the panel.</span><span class="s3">Run it.</span></h1>
+      <h1 lang="tr"><span class="s1">Mantığı öğren.</span><span class="s2">Panoyu kur.</span><span class="s3">Çalıştır.</span></h1>
+
+      <p class="lede" lang="en">PLCForge makes two apps for people who work with industrial automation, or are training to. One teaches ladder logic from the first contact. The other gives you a full bench: power, protection, a PLC, an HMI and the machine it controls.</p>
+      <p class="lede" lang="tr">PLCForge, endüstriyel otomasyonla çalışanlar ve bu alanda eğitim görenler için iki uygulama geliştirir. Biri ladder mantığını ilk kontaktan başlayarak öğretir. Diğeri eksiksiz bir deney masası sunar: enerji, koruma, PLC, HMI ve kontrol edilen makine.</p>
+
+      <div class="jump">
+        <a href="#forge">
+          <img src="img/forge-icon.png" alt="" width="44" height="44">
+          <span>PLCForge
+            <small lang="en">Simulator</small><small lang="tr">Simülatör</small>
+          </span>
+        </a>
+        <a href="#learn">
+          <img src="img/learn-icon.png" alt="" width="44" height="44">
+          <span>PLC Learn
+            <small lang="en">Course</small><small lang="tr">Eğitim</small>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <div class="demo" id="demo">
+      <div class="bar">
+        <span lang="en">Network 1 · Motor start/stop</span><span lang="tr">Network 1 · Motor start/stop</span>
+        <span class="run">RUN</span>
+      </div>
+      <svg class="lad" viewBox="0 0 520 210" role="img" aria-label="Ladder diagram: start button in parallel with a seal-in contact, in series with a stop button, driving a motor coil">
+        <line class="railbar" x1="20" y1="18" x2="20" y2="192"/>
+        <line class="railbar" x1="500" y1="18" x2="500" y2="192"/>
+        <!-- always live from the left rail -->
+        <path class="w on" d="M20 70H98"/>
+        <path class="w on" d="M60 70V150H98"/>
+        <!-- start contact I0.0 (NO) -->
+        <path class="w on" d="M98 54V86"/>
+        <path class="w" data-k="n1" d="M122 54V86"/>
+        <path class="w" data-k="start" d="M98 70H122"/>
+        <text x="110" y="42" text-anchor="middle" data-k="start">I0.0</text>
+        <text x="110" y="104" text-anchor="middle">START</text>
+        <!-- seal-in contact Q0.0 -->
+        <path class="w on" d="M98 134V166"/>
+        <path class="w" data-k="n1" d="M122 134V166"/>
+        <path class="w" data-k="q" d="M98 150H122"/>
+        <text x="110" y="186" text-anchor="middle" data-k="q">Q0.0</text>
+        <!-- node 1 -->
+        <path class="w" data-k="n1" d="M122 70H248"/>
+        <path class="w" data-k="n1" d="M122 150H170V70"/>
+        <!-- stop contact I0.1 (NC) -->
+        <path class="w" data-k="n1" d="M248 54V86"/>
+        <path class="w" data-k="n2" d="M272 54V86"/>
+        <path class="w" data-k="pass" d="M248 70H272"/>
+        <path class="w" data-k="nc" d="M244 88L276 52"/>
+        <text x="260" y="42" text-anchor="middle" data-k="nc">I0.1</text>
+        <text x="260" y="104" text-anchor="middle">STOP</text>
+        <!-- node 2 to coil -->
+        <path class="w" data-k="n2" d="M272 70H402"/>
+        <circle class="w coil" data-k="n2" cx="422" cy="70" r="20"/>
+        <path class="w" data-k="n2" d="M442 70H500"/>
+        <text x="422" y="42" text-anchor="middle" data-k="n2">Q0.0</text>
+        <text x="422" y="110" text-anchor="middle">MOTOR</text>
+      </svg>
+      <div class="ops">
+        <button type="button" class="pb" id="pb-start"><small>I0.0</small>Start</button>
+        <button type="button" class="pb stop" id="pb-stop"><small>I0.1</small>Stop</button>
+        <div class="motor" id="motor" aria-live="polite">
+          <svg viewBox="0 0 46 46" aria-hidden="true">
+            <circle class="ring" cx="23" cy="23" r="20" fill="none" stroke-width="3"/>
+            <g class="fan blades">
+              <path d="M23 23c-2-8 1-14 6-15 3 5 0 11-6 15z"/>
+              <path d="M23 23c8-2 14 1 15 6-5 3-11 0-15-6z"/>
+              <path d="M23 23c2 8-1 14-6 15-3-5 0-11 6-15z"/>
+              <path d="M23 23c-8 2-14-1-15-6 5-3 11 0 15 6z"/>
+            </g>
+            <circle cx="23" cy="23" r="3.5" fill="#0c131f"/>
+          </svg>
+          <span>M1<b id="motor-state">STOPPED</b></span>
+        </div>
+      </div>
+      <p class="hint" lang="en">Press Start and let go. The motor keeps running because Q0.0 seals itself in. Stop breaks the rung.</p>
+      <p class="hint" lang="tr">Start'a bas ve bırak. Q0.0 kendini mühürlediği için motor çalışmaya devam eder. Stop rung'ı keser.</p>
+    </div>
+  </div>
+
+  <div class="facts">
+    <div>
+      <b lang="en">3 platforms</b><b lang="tr">3 platform</b>
+      <span lang="en">Android, iPhone and iPad, Windows</span><span lang="tr">Android, iPhone ve iPad, Windows</span>
+    </div>
+    <div>
+      <b lang="en">Up to 6 languages</b><b lang="tr">6 dile kadar</b>
+      <span>EN · TR · PT · ES · DE · AR</span>
+    </div>
+    <div>
+      <b lang="en">Works offline</b><b lang="tr">Çevrimdışı çalışır</b>
+      <span lang="en">No account, no sign-in</span><span lang="tr">Hesap yok, oturum açma yok</span>
+    </div>
+    <div>
+      <b lang="en">Pay once</b><b lang="tr">Tek ödeme</b>
+      <span lang="en">No subscription</span><span lang="tr">Abonelik yok</span>
+    </div>
+  </div>
+</section>
+
+<section class="product forge" id="forge">
+  <div class="rung forge" aria-hidden="true">
+    <span class="wire"></span>
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h11M23 17h11M11 5v24M23 5v24"/></svg>
+    <span class="tag" lang="en">Simulator</span><span class="tag" lang="tr">Simülatör</span>
+    <span class="wire long"></span>
+    <svg width="46" height="34" viewBox="0 0 46 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h10M36 17h10"/><circle cx="23" cy="17" r="13"/></svg>
+    <span class="wire"></span>
+  </div>
+
+  <div class="grid">
+    <div class="copy">
+      <h2><img src="img/forge-icon.png" alt="" width="64" height="64">PLCForge</h2>
+
+      <p class="what" lang="en">Place the components, pull the wires, write the ladder program and switch the power on. If the wiring is wrong, the motor does not turn.</p>
+      <p class="what" lang="tr">Elemanları yerleştir, kabloları çek, ladder programını yaz ve enerjiyi ver. Bağlantı yanlışsa motor dönmez.</p>
+
+      <ul class="feats" lang="en">
+        <li><code>PANEL</code><span><b>Real control circuits.</b> Breakers, contactors, thermal relays, buttons, selectors, sensors and motors on a 24 V DC and 400 V AC supply.</span></li>
+        <li><code>PLC</code><span><b>Ladder editor.</b> Contacts, coils, timers, counters and compare blocks, with a signal graph that shows each bit over time.</span></li>
+        <li><code>HMI</code><span><b>Operator panel.</b> Buttons, lamps, value fields and machine symbols, connected to the PLC over Ethernet.</span></li>
+        <li><code>AXIS</code><span><b>Process and motion.</b> Tanks, conveyors, servo drives and linear axes that respond to your outputs.</span></li>
+        <li><code>LAB</code><span><b>Guided lessons and challenges.</b> Ready templates to start from, and problems to solve on your own.</span></li>
+        <li><code>FILE</code><span><b>Save and share.</b> Keep projects as files, send them to a colleague, export the circuit as PNG or PDF.</span></li>
+      </ul>
+      <ul class="feats" lang="tr">
+        <li><code>PANO</code><span><b>Gerçek kumanda devreleri.</b> 24 V DC ve 400 V AC beslemede sigortalar, kontaktörler, termik röleler, butonlar, seçici anahtarlar, sensörler ve motorlar.</span></li>
+        <li><code>PLC</code><span><b>Ladder editörü.</b> Kontaklar, bobinler, zamanlayıcılar, sayıcılar ve karşılaştırma blokları; her biti zaman ekseninde gösteren sinyal grafiği.</span></li>
+        <li><code>HMI</code><span><b>Operatör paneli.</b> PLC'ye Ethernet ile bağlanan butonlar, lambalar, değer alanları ve makine sembolleri.</span></li>
+        <li><code>EKSEN</code><span><b>Proses ve hareket.</b> Çıkışlarına tepki veren tanklar, konveyörler, servo sürücüler ve lineer eksenler.</span></li>
+        <li><code>LAB</code><span><b>Rehberli dersler ve meydan okumalar.</b> Başlangıç için hazır şablonlar, tek başına çözmen için problemler.</span></li>
+        <li><code>DOSYA</code><span><b>Kaydet ve paylaş.</b> Projeleri dosya olarak sakla, arkadaşına gönder, devreyi PNG veya PDF olarak dışa aktar.</span></li>
+      </ul>
+
+      <div class="stores">
+        <a href="https://play.google.com/store/apps/details?id=com.aksoy.plcforge" rel="noopener"><small>Android</small>Google Play</a>
+        <a href="https://apps.apple.com/app/id6806028779" rel="noopener"><small>iPhone · iPad</small>App Store</a>
+        <a href="https://apps.microsoft.com/detail/9MWR1RJZC9BC?cid=plcforge_net" rel="noopener"><small>Windows</small>Microsoft Store</a>
+      </div>
+      <p class="note" lang="en">Free to try. One purchase unlocks everything, with no subscription and no ads.</p>
+      <p class="note" lang="tr">Denemesi ücretsiz. Tek satın alma her şeyi açar; abonelik ve reklam yok.</p>
+    </div>
+
+    <div class="viewer" data-viewer>
+      <img src="img/forge-1.jpg" width="675" height="1200" alt="PLCForge: a PLC wired to a power supply, a tank and a pump">
+      <div class="tabs" role="group" aria-label="Screens">
+        <button type="button" aria-pressed="true" data-src="img/forge-1.jpg"><span lang="en">Tank</span><span lang="tr">Tank</span></button>
+        <button type="button" aria-pressed="false" data-src="img/forge-2.jpg">Ladder</button>
+        <button type="button" aria-pressed="false" data-src="img/forge-3.jpg">Servo</button>
+        <button type="button" aria-pressed="false" data-src="img/forge-4.jpg"><span lang="en">Templates</span><span lang="tr">Şablonlar</span></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="rung forge" aria-hidden="true">
+    <span class="wire"></span>
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h11M23 17h11M11 5v24M23 5v24"/></svg>
+    <span class="tag" lang="en">How it works</span><span class="tag" lang="tr">Nasıl çalışır</span>
+    <span class="wire long"></span>
+    <svg width="46" height="34" viewBox="0 0 46 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h10M36 17h10"/><circle cx="23" cy="17" r="13"/></svg>
+    <span class="wire"></span>
+  </div>
+
+  <div class="sec-head">
+    <h2 lang="en">A PLCForge project, in four steps</h2>
+    <h2 lang="tr">Dört adımda bir PLCForge projesi</h2>
+  </div>
+
+  <ol class="steps" lang="en">
+    <li><span class="n"></span><h3>Place</h3><p>Drag a power supply, a PLC, buttons, a contactor and a motor onto the canvas.</p></li>
+    <li><span class="n"></span><h3>Wire</h3><p>Connect terminal to terminal: L1, N, 24 V, 0 V, inputs, outputs, A1 and A2.</p></li>
+    <li><span class="n"></span><h3>Program</h3><p>Open the PLC and write the rungs. Addresses match the terminals you wired.</p></li>
+    <li><span class="n"></span><h3>Run</h3><p>Switch on. Wires light up where current flows, and the machine moves.</p></li>
+  </ol>
+  <ol class="steps" lang="tr">
+    <li><span class="n"></span><h3>Yerleştir</h3><p>Güç kaynağı, PLC, butonlar, kontaktör ve motoru tuvale sürükle.</p></li>
+    <li><span class="n"></span><h3>Bağla</h3><p>Klemensten klemense kablo çek: L1, N, 24 V, 0 V, girişler, çıkışlar, A1 ve A2.</p></li>
+    <li><span class="n"></span><h3>Programla</h3><p>PLC'yi aç ve rung'ları yaz. Adresler, kablo çektiğin klemenslerle aynıdır.</p></li>
+    <li><span class="n"></span><h3>Çalıştır</h3><p>Enerjiyi ver. Akım geçen kablolar yanar, makine hareket eder.</p></li>
+  </ol>
+
+  <div class="video" id="video">
+    <img src="img/reel.jpg" width="1280" height="720" loading="lazy" alt="PLCForge on Windows: a PLC, a tank and an HMI operator panel">
+    <button type="button" aria-label="Play video">
+      <span class="play"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M9 5l17 10L9 25z" fill="#0a0f18"/></svg></span>
+    </button>
+  </div>
+  <p class="video-note">
+    <span lang="en">PLCForge on Windows, 1 minute. The video loads from YouTube when you press play. </span>
+    <span lang="tr">Windows'ta PLCForge, 1 dakika. Oynat'a basınca video YouTube'dan yüklenir. </span>
+    <a href="https://youtu.be/g-_OvBQtHfw" rel="noopener"><span lang="en">Open on YouTube</span><span lang="tr">YouTube'da aç</span></a>
+  </p>
+</section>
+
+<section class="product learn flip" id="learn">
+  <div class="rung learn" aria-hidden="true">
+    <span class="wire"></span>
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h11M23 17h11M11 5v24M23 5v24"/></svg>
+    <span class="tag" lang="en">Course</span><span class="tag" lang="tr">Eğitim</span>
+    <span class="wire long"></span>
+    <svg width="46" height="34" viewBox="0 0 46 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h10M36 17h10"/><circle cx="23" cy="17" r="13"/></svg>
+    <span class="wire"></span>
+  </div>
+
+  <div class="grid">
+    <div class="copy">
+      <h2><img src="img/learn-icon.png" alt="" width="64" height="64">PLC Learn</h2>
+
+      <p class="what" lang="en">A ladder logic course that starts with what a PLC is and ends with you solving plant problems on your own.</p>
+      <p class="what" lang="tr">PLC'nin ne olduğuyla başlayan ve tesis problemlerini tek başına çözmenle biten bir ladder eğitimi.</p>
+
+      <ul class="feats" lang="en">
+        <li><code>LESSON</code><span><b>Step-by-step modules.</b> Contacts and coils, latching, timers, counters, comparison and analog signals, each with a quiz.</span></li>
+        <li><code>RUN</code><span><b>Ladder sandbox.</b> Build rungs, toggle the inputs and watch the power flow.</span></li>
+        <li><code>TASK</code><span><b>50 practice problems.</b> Mixing reactors, conveyors, alarms and pump stations, with a live animation of the machine you control.</span></li>
+        <li><code>GRAPH</code><span><b>Signal graph.</b> See exactly when each input, output and timer changes state.</span></li>
+      </ul>
+      <ul class="feats" lang="tr">
+        <li><code>DERS</code><span><b>Adım adım modüller.</b> Kontak ve bobin, mühürleme, zamanlayıcılar, sayıcılar, karşılaştırma ve analog sinyaller; her modülün sonunda test.</span></li>
+        <li><code>RUN</code><span><b>Ladder deneme alanı.</b> Rung'ları kur, girişleri değiştir ve enerji akışını izle.</span></li>
+        <li><code>GÖREV</code><span><b>50 uygulama problemi.</b> Karıştırma reaktörü, konveyör, alarm ve pompa istasyonu; kontrol ettiğin makinenin canlı animasyonuyla.</span></li>
+        <li><code>GRAFİK</code><span><b>Sinyal grafiği.</b> Her giriş, çıkış ve zamanlayıcının ne zaman durum değiştirdiğini gör.</span></li>
+      </ul>
+
+      <div class="stores">
+        <a href="https://play.google.com/store/apps/details?id=com.aksoy.plcladderlearn" rel="noopener"><small>Android</small>Google Play</a>
+        <a href="https://apps.apple.com/app/id6806028325" rel="noopener"><small>iPhone · iPad</small>App Store</a>
+      </div>
+      <p class="note" lang="en">Free to start. One purchase unlocks the full course. English, Türkçe, Português.</p>
+      <p class="note" lang="tr">Başlaması ücretsiz. Tek satın alma eğitimin tamamını açar. English, Türkçe, Português.</p>
+    </div>
+
+    <div class="viewer" data-viewer>
+      <img src="img/learn-1.jpg" width="675" height="1200" loading="lazy" alt="PLC Learn: mixing reactor problem with live animation">
+      <div class="tabs" role="group" aria-label="Screens">
+        <button type="button" aria-pressed="true" data-src="img/learn-1.jpg"><span lang="en">Reactor</span><span lang="tr">Reaktör</span></button>
+        <button type="button" aria-pressed="false" data-src="img/learn-2.jpg"><span lang="en">Conveyor</span><span lang="tr">Konveyör</span></button>
+        <button type="button" aria-pressed="false" data-src="img/learn-3.jpg"><span lang="en">Graph</span><span lang="tr">Grafik</span></button>
+        <button type="button" aria-pressed="false" data-src="img/learn-4.jpg"><span lang="en">Quiz</span><span lang="tr">Test</span></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="which">
+  <div class="rung plain" aria-hidden="true">
+    <span class="wire"></span>
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h11M23 17h11M11 5v24M23 5v24"/></svg>
+    <span class="tag" lang="en">Compare</span><span class="tag" lang="tr">Karşılaştır</span>
+    <span class="wire long"></span>
+    <svg width="46" height="34" viewBox="0 0 46 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h10M36 17h10"/><circle cx="23" cy="17" r="13"/></svg>
+    <span class="wire"></span>
+  </div>
+
+  <div class="sec-head">
+    <h2 lang="en">Which one do I start with?</h2>
+    <h2 lang="tr">Hangisiyle başlamalıyım?</h2>
+    <p lang="en">New to ladder logic: start with PLC Learn. Already reading rungs and want to build complete systems: go to PLCForge. Many people use both.</p>
+    <p lang="tr">Ladder'a yeni başlıyorsan PLC Learn ile başla. Rung okuyabiliyor ve eksiksiz sistemler kurmak istiyorsan PLCForge'a geç. Birçok kişi ikisini birlikte kullanıyor.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table class="compare" lang="en">
+      <thead><tr><th></th><th class="l">PLC Learn</th><th class="f">PLCForge</th></tr></thead>
+      <tbody>
+        <tr><th>Best for</th><td>First steps in PLC programming</td><td>Building and testing complete systems</td></tr>
+        <tr><th>You work on</th><td>Lessons, quizzes and ladder problems</td><td>Wiring, ladder, HMI screens and machines</td></tr>
+        <tr><th>Hardware shown</th><td>Inputs, outputs and an animated process</td><td>Power, protection, PLC, HMI, drives, sensors, motors</td></tr>
+        <tr><th>Platforms</th><td>Android, iPhone, iPad</td><td>Android, iPhone, iPad, Windows</td></tr>
+        <tr><th>Languages</th><td>English, Türkçe, Português</td><td>English, Türkçe, Português, Español, Deutsch, العربية</td></tr>
+      </tbody>
+    </table>
+    <table class="compare" lang="tr">
+      <thead><tr><th></th><th class="l">PLC Learn</th><th class="f">PLCForge</th></tr></thead>
+      <tbody>
+        <tr><th>Kime uygun</th><td>PLC programlamaya ilk adım atanlar</td><td>Eksiksiz sistem kurup test etmek isteyenler</td></tr>
+        <tr><th>Ne yaparsın</th><td>Dersler, testler ve ladder problemleri</td><td>Kablolama, ladder, HMI ekranları ve makineler</td></tr>
+        <tr><th>Donanım</th><td>Girişler, çıkışlar ve animasyonlu proses</td><td>Enerji, koruma, PLC, HMI, sürücüler, sensörler, motorlar</td></tr>
+        <tr><th>Platformlar</th><td>Android, iPhone, iPad</td><td>Android, iPhone, iPad, Windows</td></tr>
+        <tr><th>Diller</th><td>English, Türkçe, Português</td><td>English, Türkçe, Português, Español, Deutsch, العربية</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="rung plain" aria-hidden="true">
+    <span class="wire"></span>
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h11M23 17h11M11 5v24M23 5v24"/></svg>
+    <span class="tag" lang="en">Questions</span><span class="tag" lang="tr">Sorular</span>
+    <span class="wire long"></span>
+    <svg width="46" height="34" viewBox="0 0 46 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h10M36 17h10"/><circle cx="23" cy="17" r="13"/></svg>
+    <span class="wire"></span>
+  </div>
+
+  <div class="sec-head">
+    <h2 lang="en">Frequently asked</h2>
+    <h2 lang="tr">Sık sorulanlar</h2>
+  </div>
+
+  <div class="faq" lang="en">
+    <details open>
+      <summary>Do I need a real PLC or any hardware?</summary>
+      <p>No. Everything runs on your phone, tablet or PC. The apps simulate the PLC, the wiring and the machine.</p>
+    </details>
+    <details>
+      <summary>Is it free?</summary>
+      <p>Both apps are free to download and try. A single purchase inside the app unlocks the full content. There is no subscription.</p>
+    </details>
+    <details>
+      <summary>I bought it on Android. Is it unlocked on iPhone or Windows too?</summary>
+      <p>No. Google Play, the App Store and the Microsoft Store each handle their own purchases, so a purchase is valid on the store where you made it.</p>
+    </details>
+    <details>
+      <summary>Does it work without internet?</summary>
+      <p>Yes. PLCForge works fully offline and does not ask you to create an account. You only need a connection to download the app and to make the purchase.</p>
+    </details>
+    <details>
+      <summary>Will what I learn apply to real PLCs?</summary>
+      <p>Yes. The apps use standard ladder elements and I, Q and M addressing such as I0.0 and Q0.0, with TON, TOF and counter blocks. The same logic applies when you move to an industrial programming environment.</p>
+    </details>
+    <details>
+      <summary>Can I use the apps in a classroom?</summary>
+      <p>Yes. Teachers and trainers use them for lab work when there is not enough hardware for every student. Write to us and tell us about your class.</p>
+    </details>
+  </div>
+  <div class="faq" lang="tr">
+    <details open>
+      <summary>Gerçek bir PLC ya da donanım gerekiyor mu?</summary>
+      <p>Hayır. Her şey telefonunda, tabletinde ya da bilgisayarında çalışır. Uygulamalar PLC'yi, kablolamayı ve makineyi simüle eder.</p>
+    </details>
+    <details>
+      <summary>Ücretsiz mi?</summary>
+      <p>İki uygulamayı da ücretsiz indirip deneyebilirsin. Uygulama içindeki tek bir satın alma tüm içeriği açar. Abonelik yok.</p>
+    </details>
+    <details>
+      <summary>Android'de satın aldım. iPhone ya da Windows'ta da açık olur mu?</summary>
+      <p>Hayır. Google Play, App Store ve Microsoft Store satın almaları ayrı ayrı yönetir; satın alma, yapıldığı mağazada geçerlidir.</p>
+    </details>
+    <details>
+      <summary>İnternet olmadan çalışır mı?</summary>
+      <p>Evet. PLCForge tamamen çevrimdışı çalışır ve hesap açmanı istemez. İnternet yalnızca uygulamayı indirirken ve satın alırken gerekir.</p>
+    </details>
+    <details>
+      <summary>Öğrendiklerim gerçek PLC'lerde işe yarar mı?</summary>
+      <p>Evet. Uygulamalar standart ladder elemanlarını, I0.0 ve Q0.0 gibi I, Q ve M adreslemesini, TON, TOF ve sayıcı bloklarını kullanır. Endüstriyel bir programlama ortamına geçtiğinde aynı mantık geçerlidir.</p>
+    </details>
+    <details>
+      <summary>Uygulamaları sınıfta kullanabilir miyim?</summary>
+      <p>Evet. Öğretmenler ve eğitmenler, her öğrenciye yetecek donanım olmadığında laboratuvar çalışması için kullanıyor. Bize yaz, sınıfını anlat.</p>
+    </details>
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <div class="rung off" aria-hidden="true">
+    <span class="wire"></span>
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h11M23 17h11M11 5v24M23 5v24"/></svg>
+    <span class="tag" lang="en">Contact</span><span class="tag" lang="tr">İletişim</span>
+    <span class="wire long"></span>
+    <svg width="46" height="34" viewBox="0 0 46 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M0 17h10M36 17h10"/><circle cx="23" cy="17" r="13"/></svg>
+    <span class="wire"></span>
+  </div>
+
+  <div class="box">
+    <div>
+      <h2 lang="en">Found a bug, or teaching a class?</h2>
+      <h2 lang="tr">Bir hata mı buldun, ders mi veriyorsun?</h2>
+      <p lang="en">Write to us about problems, feature requests, or using the apps in a school or training centre. We read every message.</p>
+      <p lang="tr">Sorunlar, özellik istekleri ya da uygulamaların okulda veya eğitim merkezinde kullanımı için bize yaz. Her mesajı okuyoruz.</p>
+    </div>
+    <div class="mail">
+      <a href="mailto:info@plcforge.net">info@plcforge.net</a>
+      <button type="button" id="copy" data-en="Copy" data-tr="Kopyala" data-en-ok="Copied" data-tr-ok="Kopyalandı"><span lang="en">Copy</span><span lang="tr">Kopyala</span></button>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <span>© 2026 PLCForge</span>
+  <nav>
+    <a href="https://uuraks.github.io/privacy-policy/plcforge.html" rel="noopener"><span lang="en">Privacy: PLCForge</span><span lang="tr">Gizlilik: PLCForge</span></a>
+    <a href="https://uuraks.github.io/plc-privacy-policy/" rel="noopener"><span lang="en">Privacy: PLC Learn</span><span lang="tr">Gizlilik: PLC Learn</span></a>
+    <a href="https://www.youtube.com/@PLCAUTOMATION-u3t" rel="noopener">YouTube</a>
+  </nav>
+</footer>
+
+</div>
+<script>
+(function () {
+  var root = document.documentElement;
+
+  /* language */
+  var langButtons = document.querySelectorAll('.lang button');
+  var titles = {
+    en: 'PLCForge — PLC simulator and PLC training apps',
+    tr: 'PLCForge — PLC simülatörü ve PLC eğitim uygulamaları'
+  };
+  var motorWords = { en: ['STOPPED', 'RUNNING'], tr: ['DURUYOR', 'ÇALIŞIYOR'] };
+  var lang = 'en';
+  function setLang(l, remember) {
+    lang = l;
+    root.setAttribute('data-lang', l);
+    root.setAttribute('lang', l);
+    document.title = titles[l];
+    langButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.set === l)); });
+    if (remember) { try { localStorage.setItem('lang', l); } catch (e) {} }
+    render();
+  }
+
+  /* live ladder: Q0.0 = (I0.0 OR Q0.0) AND NOT I0.1 */
+  var demo = document.getElementById('demo');
+  var motor = document.getElementById('motor');
+  var motorState = document.getElementById('motor-state');
+  var s = { start: false, stop: false, q: false };
+  function render() {
+    var n1 = s.start || s.q;
+    var n2 = n1 && !s.stop;
+    s.q = n2;
+    var on = { start: s.start, q: s.q, n1: s.start || s.q, pass: (s.start || s.q) && !s.stop, nc: !s.stop, n2: s.q };
+    demo.querySelectorAll('[data-k]').forEach(function (el) {
+      el.classList.toggle('on', !!on[el.getAttribute('data-k')]);
+    });
+    motor.classList.toggle('on', s.q);
+    motorState.textContent = motorWords[lang][s.q ? 1 : 0];
+  }
+  function momentary(btn, key) {
+    var press = function (e) { e.preventDefault(); s[key] = true; btn.classList.add('down'); render(); };
+    var release = function () { if (!s[key]) return; s[key] = false; btn.classList.remove('down'); render(); };
+    btn.addEventListener('pointerdown', press);
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointerleave', release);
+    btn.addEventListener('pointercancel', release);
+    btn.addEventListener('keydown', function (e) { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) press(e); });
+    btn.addEventListener('keyup', function (e) { if (e.key === ' ' || e.key === 'Enter') release(); });
+    btn.addEventListener('blur', release);
+  }
+  momentary(document.getElementById('pb-start'), 'start');
+  momentary(document.getElementById('pb-stop'), 'stop');
+
+  var saved = null;
+  try { saved = localStorage.getItem('lang'); } catch (e) {}
+  var initial = location.hash === '#tr' ? 'tr'
+    : location.hash === '#en' ? 'en'
+    : saved || ((navigator.language || '').toLowerCase().indexOf('tr') === 0 ? 'tr' : 'en');
+  setLang(initial, false);
+  langButtons.forEach(function (b) {
+    b.addEventListener('click', function () { setLang(b.dataset.set, true); });
+  });
+
+  /* screenshot viewers */
+  document.querySelectorAll('[data-viewer]').forEach(function (v) {
+    var img = v.querySelector('img');
+    var tabs = v.querySelectorAll('.tabs button');
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        img.src = t.dataset.src;
+        tabs.forEach(function (o) { o.setAttribute('aria-pressed', String(o === t)); });
+      });
+    });
+  });
+
+  /* video: load YouTube only after a click */
+  var video = document.getElementById('video');
+  video.querySelector('button').addEventListener('click', function () {
+    var f = document.createElement('iframe');
+    f.src = 'https://www.youtube-nocookie.com/embed/g-_OvBQtHfw?autoplay=1&rel=0';
+    f.title = 'PLCForge for Windows';
+    f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    f.allowFullscreen = true;
+    video.innerHTML = '';
+    video.appendChild(f);
+  });
+
+  /* copy e-mail */
+  var copy = document.getElementById('copy');
+  copy.addEventListener('click', function () {
+    var spans = copy.querySelectorAll('span');
+    var done = function () {
+      spans[0].textContent = copy.dataset.enOk;
+      spans[1].textContent = copy.dataset.trOk;
+      setTimeout(function () {
+        spans[0].textContent = copy.dataset.en;
+        spans[1].textContent = copy.dataset.tr;
+      }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText('info@plcforge.net').then(done, function () {});
+    }
+  });
+})();
+</script>
+</body>
+</html>
