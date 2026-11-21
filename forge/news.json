@@ -1,30 +1,3 @@
 {
-  "items": [
-    {
-      "id": "forge_test_duyuru_20261121",
-      "type": "info",
-      "start": "2026-11-21",
-      "end": "2026-11-22",
-      "platforms": ["android"],
-      "minBuild": 36,
-      "maxBuild": 36,
-      "title": {
-        "tr": "Deneme duyurusu",
-        "en": "Test announcement"
-      },
-      "items": [
-        {"icon": "campaign", "text": {"tr": "Bu pencere plcforge.net'ten gönderilen bir duyurudur.", "en": "This window is an announcement sent from plcforge.net."}},
-        {"icon": "volume_up", "text": {"tr": "1.21.0 ile simülasyon artık sesli.", "en": "With 1.21.0 the simulation now has sound."}}
-      ],
-      "footnote": {
-        "tr": "Yalnız dahili test sürümünde (36) görünür.",
-        "en": "Visible only in the internal test build (36)."
-      },
-      "cta": {
-        "action": "url",
-        "url": "https://plcforge.net/",
-        "label": {"tr": "Siteyi Aç", "en": "Open Site"}
-      }
-    }
-  ]
+  "items": []
 }
