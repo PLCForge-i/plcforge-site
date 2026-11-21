@@ -1,3 +1,13 @@
 {
-  "items": []
+  "items": [
+    {
+      "type": "update",
+      "build": 37,
+      "version": "1.21.0",
+      "items": [
+        {"icon": "volume_up", "text": {"tr": "Ses seviyesi artık uygulama içinden ayarlanıyor.", "en": "Sound volume can now be adjusted inside the app."}},
+        {"icon": "bug_report", "text": {"tr": "Sesi kapatıp açınca motor sesinin geri gelmemesi düzeltildi.", "en": "Fixed motor sound not returning after muting and unmuting."}}
+      ]
+    }
+  ]
 }
